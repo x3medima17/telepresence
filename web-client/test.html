@@ -1,0 +1,113 @@
+
+<div id="ThreeJS" style="z-index: 1; position: absolute; left:0px; top:0px"></div>
+
+<script src="static/js/three/Three.js"></script>
+<script src="static/js/three/Detector.js"></script>
+<script src="static/js/three/THREEx.KeyboardState.js"></script>
+<script src="static/js/three/THREEx.FullScreen.js"></script>
+<script src="static/js/three/THREEx.WindowResize.js"></script>
+<script src="static/js/three/OrbitControls.js"></script>
+<script src="static/js/three/Stats.js"></script>
+<script src="static/js/three/hand_data.js"></script>
+<script src="static/js/three/setup.js"></script>
+<script src="static/js/three/geometry.js"></script>
+<script src="static/js/three/GRS.js"></script>
+<script src="static/js/jquery-1.9.1.js"></script>
+
+<script>
+
+	// Macro objects
+	var keyboard = new THREEx.KeyboardState()	
+	var clock = new THREE.Clock()
+	const SCALE = 100;
+	objs = []
+	function init(){
+
+		setup(1336,760);
+		///// Gemetry ////
+
+		tmp = [
+			[ 50, 50, 50 ],
+			[ 50, 50, 100 ]
+		]
+
+		var obj = new THREE.Mesh(tipSphereGeometry, sphereMaterial)
+			obj.position.x = 100
+			obj.position.y = 0 //+ 100
+			obj.position.z = 0
+			scene.add(obj)
+			
+		for(var i = 0; i < tmp.length; i++)
+		{
+			// var x_center = tmp[3][0] * SCALE;
+			var obj = new THREE.Mesh(tipSphereGeometry, sphereMaterial)
+			obj.position.x = tmp[i][0] 
+			obj.position.y = tmp[i][1] 
+			obj.position.z = tmp[i][2] 
+			objs.push(obj)
+			scene.add(obj)
+		}
+		window.obj = new THREE.Mesh(boneGeometry(200), cylinderMaterial)
+		window.obj.position.set(50,50,50)
+		scene.add(window.obj)
+
+
+	}
+
+
+function redraw(data)
+{
+	for(var i = 0; i<data.length; i++)
+	{
+		objs[i].position.x = data[i][0] * SCALE
+		objs[i].position.y = data[i][1] * SCALE + 100
+		objs[i].position.z = data[i][2] * SCALE
+	}
+}
+
+function animate(){
+	requestAnimationFrame(animate)
+	render()
+	
+	update()
+}
+
+
+function update(){
+	controls.update()
+	stats.update()
+}
+
+
+function render(){
+	renderer.render(scene,camera)
+}
+
+
+init()
+animate()
+
+ws = new WebSocket ("ws://localhost:9000")
+// var ws = new WebSocket ("ws://188.166.48.28:9090/ws")
+
+ws.onopen = function(){
+	console.log("Done")
+	ws.send("heeeeeyyyyyyyyyyyy")
+}
+
+ws.onmessage = function(e)
+{
+
+	console.log(e.data)	
+	data = JSON.parse(e.data)
+	redraw(data)
+}
+
+
+ws.onclose = function()
+{
+	console.log("Closed")
+}
+</script>
+
+
