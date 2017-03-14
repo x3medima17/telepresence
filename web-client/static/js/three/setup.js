@@ -65,7 +65,7 @@ function setup(width,height)
 
 
 		// Floor
-		var floorTexture = new THREE.ImageUtils.loadTexture('/web-client/static/img/checkerboard.jpg')
+		var floorTexture = new THREE.ImageUtils.loadTexture('static/img/checkerboard.jpg')
 		floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
 		floorTexture.repeat.set(10,10)
 
