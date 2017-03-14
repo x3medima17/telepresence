@@ -120,17 +120,16 @@ function simulate(){
 			var a = Math.cos(q2) * Math.cos(q4)
 			var b = Math.sin(q2) * Math.sin(q4)
 			var c = l1 * Math.cos(q2)
-			var tmp = (a - ((y2-c)/l2)) / b
-			var q3 = Math.asin(a/l1 - y2/(l1*l2) - Math.cos(q2)/l2)   
-			var q3p = Math.asin((Math.cos(q2)*Math.cos(q4) + (y2 - l1*Math.cos(q2))/l2)/(Math.sin(q2)*Math.sin(q4)))  
-			console.log(tmp, q3, q3p)
+			var tmp = (a-(y2-c)/l2)/b
+			var q3 = Math.asin(tmp)
+			console.log(tmp, q3)
 			// console.log(l1,l2)
 			// console.log(q1,q2,q3,q4)
-			console.log(a / l1)
 			OUT.push([q1, q2, q3, q4])
 
+			
 			var zp = l1*Math.cos(q1)*Math.sin(q2)
-				clearInterval(interval)
+				// clearInterval(interval)
 			if(Math.abs(z1-zp) > 0.0000001)
 				throw "Wrong z"
 			redraw(window.data[window.i], REAL["JOINTS"], REAL["BONES"], curr)
@@ -138,7 +137,7 @@ function simulate(){
 			window.i++
 			if(window.i === n)
 			{
-				$.post("/hhh",{out:JSON.stringify(OUT)})
+				// $.post("/hhh",{out:JSON.stringify(OUT)})
 				clearInterval(interval)
 			}
 		}, 10)
