@@ -12,16 +12,16 @@ Messages are output to the terminal for debuggin purposes.
  
 class WSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
-        print 'new connection'
+        print('new connection')
       
     def on_message(self, message):
-        print 'message received:  %s' % message
+        print('message received:  {}'.format(message))
         # Reverse Message and send it back
-        print 'sending back message: %s' % message[::-1]
+        print ('sending back message: {}'.format( message[::-1]))
         self.write_message(message[::-1])
  
     def on_close(self):
-        print 'connection closed'
+        print('connection closed')
  
     def check_origin(self, origin):
         return True
@@ -35,5 +35,5 @@ if __name__ == "__main__":
     http_server = tornado.httpserver.HTTPServer(application)
     http_server.listen(8888)
     myIP = socket.gethostbyname(socket.gethostname())
-    print '*** Websocket Server Started at %s***' % myIP
+    print ('*** Websocket Server Started at {}***'.format(myIP)
     tornado.ioloop.IOLoop.instance().start()
