@@ -28,6 +28,9 @@ REAL = { "JOINTS" :{}, "BONES": {}}
 FAKE = { "JOINTS" :{}, "BONES": {}}
 
 Translation = [-60, 20, -150]
+
+SH_WIDTH = 0.4
+
 OUT = []
 function init(){
 
@@ -87,60 +90,108 @@ function load() {
 	})
 }
 
+function inverse_kinematics(points) {
+	//points = [shoulder:(x,y,z) elbow:(x,y,z) wrist(x,y,z)]
+	var v1 = switch_coords_arr(points[0])
+	var v2 = switch_coords_arr(points[1])
+	var v3 = switch_coords_arr(points[2])
+
+	var a1 = new THREE.Vector3().subVectors(vec_from_arr(v2),vec_from_arr(v1))
+	var a2 = new THREE.Vector3().subVectors(vec_from_arr(v3),vec_from_arr(v2))
+	var a3 = new THREE.Vector3().subVectors(vec_from_arr(v3),vec_from_arr(v1))
+	
+	x1 = a1.x; y1 = a1.y; z1 = a1.z;
+	y2 = a3.y;
+
+	var l1 = a1.length()
+	var l2 = a2.length()
+
+
+	var q1 = Math.atan2(x1,z1)
+	var q2 = Math.acos(y1/l1)
+	var q4 = a1.angleTo(a2)
+	// (Y - l1*cos(q2))/l2 - cos(q2)*cos(q4) = - sin(q2)*sin(q3)*sin(q4) 
+	// sin(q3) = (cos(q2)*cos(q4) + (Y - l1*cos(q2))/l2)/(sin(q2)*sin(q4))
+	var a = Math.cos(q2) * Math.cos(q4)
+	var b = Math.sin(q2) * Math.sin(q4)
+	var c = l1 * Math.cos(q2)
+	var tmp = (a-(y2-c)/l2)/b
+	var q3 = Math.asin(tmp)
+	return [q1, q2, q3, q4]
+}
+
+function forward_kinematics(angles, l1, l2) {
+	var q1 = angles[0]
+	var q2 = angles[1]
+	var q3 = angles[2]
+	var q4 = angles[3]
+
+	var x1 = l1 * Math.sin(q1) * Math.sin(q2)
+    var y1 = l1*Math.cos(q2)
+ 	var z1 = l1*Math.cos(q1)*Math.sin(q2)
+
+ 	var x2 = l1*Math.sin(q1)*Math.sin(q2) - l2*(Math.sin(q4)*(Math.cos(q1)*Math.cos(q3) - Math.cos(q2)*Math.sin(q1)*Math.sin(q3)) - Math.cos(q4)*Math.sin(q1)*Math.sin(q2))
+	var y2 = l2*(Math.cos(q2)*Math.cos(q4) - Math.sin(q2)*Math.sin(q3)*Math.sin(q4)) + l1*Math.cos(q2)
+	var z2 = l2*(Math.sin(q4)*(Math.cos(q3)*Math.sin(q1) + Math.cos(q1)*Math.cos(q2)*Math.sin(q3)) + Math.cos(q1)*Math.cos(q4)*Math.sin(q2)) + l1*Math.cos(q1)*Math.sin(q2)
+
+	return {
+		"shoulder" : [0, 0, 0],
+		"elbow" : swict_coords_arr_back([x1, y1, z1]),
+		"wrist" : swict_coords_arr_back([x2, y2, z2])
+	}
+
+}
+function work_frame(sample) {
+	//Draw real
+	var arml = sample["left"]
+	var armr = sample["right"]
+
+	var dl = [-arml["shoulder"][0], -arml["shoulder"][1], -arml["shoulder"][2]]
+	var dr = [-armr["shoulder"][0], -armr["shoulder"][1], -armr["shoulder"][2]]
+
+	var clone = {
+		"left" : translate_arm(sample["left"], dl),
+		"right" : translate_arm(sample["right"], dr),
+	}
+	clone["left"] = translate_arm(clone["left"], [-SH_WIDTH, 0, 0])
+
+	redraw(clone, REAL["JOINTS"], REAL["BONES"], [-50,60,0])
+
+	//Draw fake
+	var clone = $.extend(true,{}, window.data[window.i]);
+	points_left = [sample["left"]["shoulder"], sample["left"]["elbow"], sample["left"]["wrist"]]
+	angles_left = inverse_kinematics(points_left)
+	clone["left"] = forward_kinematics(angles_left, 0.24838567642065876, 0.2527196375596623)
+	
+	points_right = [sample["right"]["shoulder"], sample["right"]["elbow"], sample["right"]["wrist"]]
+	angles_right = inverse_kinematics(points_right)
+	clone["right"] = forward_kinematics(angles_right, 0.24838567642065876, 0.2527196375596623)
+	
+	clone["right"] = translate_arm(clone["right"], [SH_WIDTH, 0, 0])
+
+
+	redraw(clone, FAKE["JOINTS"], FAKE["BONES"],  [50,60,0])
+
+	//Send angles
+	client_ws.send(JSON.stringify([angles_left, angles_right]))
+}
 function simulate(){
 	$.get("log.txt", function(data){
 		var data = JSON.parse(data)
 		window.data = data
 		var n = data.length
 		window.i = 0
+		console.log(data[0])
 		curr = Translation.slice()
 		curr[1] += 20
 		interval = setInterval(function(){
 			var data = window.data
-			var clone = $.extend(true,{}, window.data[window.i]);
+			work_frame(data[window.i])
 			
-			var v1 = switch_coords_arr(clone["left"]["shoulder"])
-			var v2 = switch_coords_arr(clone["left"]["elbow"])
-			var v3 = switch_coords_arr(clone["left"]["wrist"])
-
-			var a1 = new THREE.Vector3().subVectors(vec_from_arr(v2),vec_from_arr(v1))
-			var a2 = new THREE.Vector3().subVectors(vec_from_arr(v3),vec_from_arr(v1))
-			
-			x1 = a1.x; y1 = a1.y; z1 = a1.z;
-			x2 = a2.x; y2 = a2.y; z2 = a2.z;
-
-			var l1 = a1.length()
-			var l2 = a2.length()
-
-			var q1 = Math.atan2(x1,z1);
-			var q2 = Math.acos(y1/l1)
-			var q4 = a1.angleTo(a2)
-			// (Y - l1*cos(q2))/l2 - cos(q2)*cos(q4) = - sin(q2)*sin(q3)*sin(q4) 
-			// sin(q3) = (cos(q2)*cos(q4) + (Y - l1*cos(q2))/l2)/(sin(q2)*sin(q4))
-			var a = Math.cos(q2) * Math.cos(q4)
-			var b = Math.sin(q2) * Math.sin(q4)
-			var c = l1 * Math.cos(q2)
-			var tmp = (a-(y2-c)/l2)/b
-			var q3 = Math.asin(tmp)
-			console.log(tmp, q3)
-			// console.log(l1,l2)
-			// console.log(q1,q2,q3,q4)
-			OUT.push([q1, q2, q3, q4])
-
-			
-			var zp = l1*Math.cos(q1)*Math.sin(q2)
-				// clearInterval(interval)
-			if(Math.abs(z1-zp) > 0.0000001)
-				throw "Wrong z"
-			redraw(window.data[window.i], REAL["JOINTS"], REAL["BONES"], curr)
-
 			window.i++
 			if(window.i === n)
-			{
-				// $.post("/hhh",{out:JSON.stringify(OUT)})
 				clearInterval(interval)
-			}
-		}, 10)
+		}, 20)
 	})
 }
 
@@ -240,6 +291,13 @@ init()
 animate()
 
 ws = new WebSocket ("ws://localhost:9000")
+client_ws = new WebSocket("ws://localhost:8888")
+
+client_ws.onopen = function(){
+	console.log("client_ws connected")
+	
+}
+
 // var ws = new WebSocket ("ws://188.166.48.28:9090/ws")
 
 ws.onopen = function(){
@@ -251,8 +309,8 @@ ws.onmessage = function(e)
 {
 
 	data = JSON.parse(e.data)
-	
-	redraw(data)
+	work_frame(data)
+	// redraw(data)
 }
 
 

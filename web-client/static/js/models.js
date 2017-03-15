@@ -84,3 +84,26 @@ function remove_axis(vec, index) {
 function switch_coords_arr(arr) {
 	return [-arr[2], -arr[0], arr[1]]
 }
+
+
+function swict_coords_arr_back(arr) {
+	return [-arr[1], arr[2], -arr[0] ]
+}
+
+function clone(obj) {
+    if (null == obj || "object" != typeof obj) return obj;
+    var copy = obj.constructor();
+    for (var attr in obj) {
+        if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+    }
+    return copy;
+}
+
+function translate_arm(hand, translation) {
+	//translation: [x,y,z]
+	out = clone(hand)
+	for(var joint in out)
+		for(var i = 0; i<3; i++)
+			out[joint][i] += translation[i]
+	return out
+}
