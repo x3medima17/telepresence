@@ -291,7 +291,7 @@ init()
 animate()
 
 ws = new WebSocket ("ws://localhost:9000")
-client_ws = new WebSocket("ws://localhost:8888")
+client_ws = new WebSocket("ws://localhost:8888/ws")
 
 client_ws.onopen = function(){
 	console.log("client_ws connected")
