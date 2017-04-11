@@ -90,7 +90,10 @@ function load() {
 	})
 }
 
-function inverse_kinematics(points) {
+function inverse_kinematics(points, arm) {
+	if(arm != "left" && arm != "right" )
+		throw "Wrong arm"
+
 	//points = [shoulder:(x,y,z) elbow:(x,y,z) wrist(x,y,z)]
 	var v1 = switch_coords_arr(points[0])
 	var v2 = switch_coords_arr(points[1])
@@ -106,26 +109,46 @@ function inverse_kinematics(points) {
 	var l1 = a1.length()
 	var l2 = a2.length()
 
-
-	var q1 = Math.atan2(x1,z1)
-	var q2 = Math.acos(y1/l1)
-	var q4 = a1.angleTo(a2)
+	var q1,q2,q3,q4;
+	if(arm == "left") {
+		q1 = Math.atan2(x1,z1) + Math.PI
+		q2 = -Math.acos(y1/l1)
+		q4 = -a1.angleTo(a2)
+		var a = Math.cos(q2) * Math.cos(q4)
+		var b = Math.sin(q2) * Math.sin(q4)
+		var c = l1 * Math.cos(q2)
+		var tmp = (a-(y2-c)/l2)/b
+		q3 = Math.asin(tmp)
+	} else {
+		q1 = Math.atan2(-x1,-z1)
+		q2 = Math.acos(-y1/l1)
+		q4 = a1.angleTo(a2)
+		var a = Math.cos(q2) * Math.cos(q4)
+		var b = Math.sin(q2) * Math.sin(q4)
+		var c = -l1 * Math.cos(q2)
+		var tmp = (a-(y2-c)/(-l2))/b
+		q3 = Math.asin(tmp)
+	
+	}
 	// (Y - l1*cos(q2))/l2 - cos(q2)*cos(q4) = - sin(q2)*sin(q3)*sin(q4) 
 	// sin(q3) = (cos(q2)*cos(q4) + (Y - l1*cos(q2))/l2)/(sin(q2)*sin(q4))
-	var a = Math.cos(q2) * Math.cos(q4)
-	var b = Math.sin(q2) * Math.sin(q4)
-	var c = l1 * Math.cos(q2)
-	var tmp = (a-(y2-c)/l2)/b
-	var q3 = Math.asin(tmp)
 	return [q1, q2, q3, q4]
 }
 
-function forward_kinematics(angles, l1, l2) {
+function forward_kinematics(angles, l1, l2,
+	arm) {
+	if(arm != "left" && arm != "right" )
+		throw "Wrong arm"
+
 	var q1 = angles[0]
 	var q2 = angles[1]
 	var q3 = angles[2]
 	var q4 = angles[3]
 
+	if(arm == "right"){
+		l1 *= -1;
+		l2 *= -1
+	}
 	var x1 = l1 * Math.sin(q1) * Math.sin(q2)
     var y1 = l1*Math.cos(q2)
  	var z1 = l1*Math.cos(q1)*Math.sin(q2)
@@ -160,18 +183,18 @@ function work_frame(sample) {
 	//Draw fake
 	var clone = $.extend(true,{}, window.data[window.i]);
 	points_left = [sample["left"]["shoulder"], sample["left"]["elbow"], sample["left"]["wrist"]]
-	angles_left = inverse_kinematics(points_left)
-	clone["left"] = forward_kinematics(angles_left, 0.24838567642065876, 0.2527196375596623)
+	angles_left = inverse_kinematics(points_left, "left")
+	clone["left"] = forward_kinematics(angles_left, 0.24838567642065876, 0.2527196375596623, "left")
 	
 	points_right = [sample["right"]["shoulder"], sample["right"]["elbow"], sample["right"]["wrist"]]
-	angles_right = inverse_kinematics(points_right)
-	clone["right"] = forward_kinematics(angles_right, 0.24838567642065876, 0.2527196375596623)
+	angles_right = inverse_kinematics(points_right, "right")
+	clone["right"] = forward_kinematics(angles_right, 0.24838567642065876, 0.2527196375596623, "right")
 	
 	clone["right"] = translate_arm(clone["right"], [SH_WIDTH, 0, 0])
 
 
 	redraw(clone, FAKE["JOINTS"], FAKE["BONES"],  [50,60,0])
-
+	console.log(angles_right)
 	//Send angles
 	client_ws.send(JSON.stringify([angles_left, angles_right]))
 }
@@ -187,7 +210,7 @@ function simulate(){
 		interval = setInterval(function(){
 			var data = window.data
 			work_frame(data[window.i])
-			
+			// clearInterval(interval)
 			window.i++
 			if(window.i === n)
 				clearInterval(interval)
