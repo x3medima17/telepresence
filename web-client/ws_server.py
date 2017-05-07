@@ -4,7 +4,7 @@ import tornado.ioloop
 import tornado.web
 import socket
 import json
-import ros
+#import ros
 
 from pprint import pprint
 '''

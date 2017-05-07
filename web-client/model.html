@@ -184,17 +184,20 @@ function work_frame(sample) {
 	var clone = $.extend(true,{}, window.data[window.i]);
 	points_left = [sample["left"]["shoulder"], sample["left"]["elbow"], sample["left"]["wrist"]]
 	angles_left = inverse_kinematics(points_left, "left")
+	console.log(points_left, angles_left)
+	
 	clone["left"] = forward_kinematics(angles_left, 0.24838567642065876, 0.2527196375596623, "left")
 	
 	points_right = [sample["right"]["shoulder"], sample["right"]["elbow"], sample["right"]["wrist"]]
 	angles_right = inverse_kinematics(points_right, "right")
+	console.log(points_right, angles_right)
+
 	clone["right"] = forward_kinematics(angles_right, 0.24838567642065876, 0.2527196375596623, "right")
 	
 	clone["right"] = translate_arm(clone["right"], [SH_WIDTH, 0, 0])
 
 
 	redraw(clone, FAKE["JOINTS"], FAKE["BONES"],  [50,60,0])
-	console.log(angles_right)
 	//Send angles
 	client_ws.send(JSON.stringify([angles_left, angles_right]))
 }
@@ -210,7 +213,7 @@ function simulate(){
 		interval = setInterval(function(){
 			var data = window.data
 			work_frame(data[window.i])
-			// clearInterval(interval)
+			clearInterval(interval)
 			window.i++
 			if(window.i === n)
 				clearInterval(interval)
