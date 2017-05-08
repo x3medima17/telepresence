@@ -5,6 +5,7 @@ import tornado.web
 import socket
 import json
 import math
+import thread
 
 import sys
 import numpy as np
@@ -101,6 +102,21 @@ k = 0
 kinect = None
 clients = []
 
+c_active = True
+
+def consumer():
+	p = -1
+	global c_active
+	while c_active:
+		while len(angles["left"][0].filtered) == p+1 and c_active:
+			# print(len(angles["left"][0].filtered), p+1)
+			time.sleep(0)
+		print("escape")
+		p+=1
+		print(p)
+	print("done")
+
+
 class WSHandler(tornado.websocket.WebSocketHandler):
 	def open(self):
 		print('new connection')
@@ -109,7 +125,6 @@ class WSHandler(tornado.websocket.WebSocketHandler):
       
 	def on_message(self, message):
 		self.k += 1
-		print(self.k)
 		data = json.loads(message)
 		left = data["left"]
 		right = data["right"]
@@ -123,14 +138,19 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 		left = angles_left
 		right = angles_right
 
+		# print(len(angles["left"][0].filtered))
 		for i,item in enumerate(right):
 			angles["right"][i].push(right[i])
-			print(len(angles["right"][i].filtered), len(angles["right"][i].data))
+			angles["left"][i].push(left[i])
+
 			if len(angles["right"][i].filtered) > 0:
                 #item.publish(angles[i].filtered[-1] *180 / math.pi)
-				print("{} ".format(angles["right"][i].filtered[-1] *180 / math.pi))
+				# print("{} ".format(angles["right"][i].filtered[-1] *180 / math.pi))
+				pass
                
 	def on_close(self):
+		global c_active
+		c_active = False
 		plt.figure()
 		for item in angles["right"]:
 			plt.plot(range(len(item.filtered)), item.filtered)
@@ -168,4 +188,5 @@ if __name__ == "__main__":
 	http_server.listen(8888)
 	myIP = socket.gethostbyname(socket.gethostname())
 	print ('*** Websocket Server Started at {}***'.format(myIP))
+	thread.start_new_thread( consumer, ( ) )
 	tornado.ioloop.IOLoop.instance().start()
