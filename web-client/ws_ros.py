@@ -5,12 +5,14 @@ import tornado.web
 import socket
 import json
 import math
-import thread
+import _thread
 
 import sys
 import numpy as np
 from pprint import pprint
 import kinematics
+import threading
+
 
 """
 import ros
@@ -22,6 +24,7 @@ from std_msgs.msg import Float64
 import time
 
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 
 
 class ContinuousFilter:
@@ -80,6 +83,13 @@ def set_publishers(pub):
     pub.append(rospy.Publisher('/control/joint_17/command', Float64, queue_size=10))
     pub.append(rospy.Publisher('/control/joint_21/command', Float64, queue_size=10))
 
+def set_interval(func, sec):
+    def func_wrapper():
+        set_interval(func, sec)
+        func()
+    t = threading.Timer(sec, func_wrapper)
+    t.start()
+    return t
 
 '''
 This is a simple Websocket Echo server that uses the Tornado websocket handler.
@@ -97,23 +107,60 @@ angles = {
 		"left" : [ContinuousFilter(), ContinuousFilter(), ContinuousFilter(), ContinuousFilter()],
 		"right" : [ContinuousFilter(), ContinuousFilter(), ContinuousFilter(), ContinuousFilter()],
 	}
-k = 0
 
+angles_interp = {
+		"left" : [None]*4,
+		"right" : [None]*4,
+}
+
+k = 0
+tick = 0
 kinect = None
 clients = []
+timestamps = []
 
 c_active = True
+T = 0
+
+def compute_period(timestamps):
+	deltas = []
+	for i,_ in enumerate(timestamps[:-1]):
+		deltas.append(timestamps[i+1] - timestamps[i])
+	return np.mean(deltas)
+
+def move():
+	global tick
+	q = angles_interp["left"][0](tick)
+	tick += 0.005
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.sendto(str.encode(str(q)), ('',9090))
+
 
 def consumer():
 	p = -1
 	global c_active
+	global T
 	while c_active:
 		while len(angles["left"][0].filtered) == p+1 and c_active:
 			# print(len(angles["left"][0].filtered), p+1)
 			time.sleep(0)
-		print("escape")
 		p+=1
-		print(p)
+
+		for key in angles.keys():
+			for i, item in enumerate(angles[key]):
+				N = len(item.filtered)
+				if(N<2):
+					break
+				angles_interp[key][i] = interp1d(range(N), item.filtered)
+
+		T = compute_period(timestamps)
+
+		if p == 1:
+			set_interval(move,0.0047)
+
+		T = compute_period(timestamps)
+		# print(T, 1/T)
+		# print(p)
 	print("done")
 
 
@@ -124,6 +171,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 		clients.append(self)
       
 	def on_message(self, message):
+		global timestamps
+		timestamps.append(time.time())
 		self.k += 1
 		data = json.loads(message)
 		left = data["left"]
@@ -188,5 +237,5 @@ if __name__ == "__main__":
 	http_server.listen(8888)
 	myIP = socket.gethostbyname(socket.gethostname())
 	print ('*** Websocket Server Started at {}***'.format(myIP))
-	thread.start_new_thread( consumer, ( ) )
+	_thread.start_new_thread( consumer, ( ) )
 	tornado.ioloop.IOLoop.instance().start()

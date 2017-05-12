@@ -13,7 +13,7 @@ async def hello():
 			for item in data:
 				frame = json.dumps(item)
 				await websocket.send(frame)
-				time.sleep(0.01)
+				time.sleep(0.05)
 
 
 asyncio.get_event_loop().run_until_complete(hello())
