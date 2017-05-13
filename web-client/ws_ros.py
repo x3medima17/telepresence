@@ -5,7 +5,7 @@ import tornado.web
 import socket
 import json
 import math
-import _thread
+import thread
 
 import sys
 import numpy as np
@@ -14,12 +14,10 @@ import kinematics
 import threading
 
 
-"""
-import ros
+# import ros
 import rospy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
-"""
 
 import time
 
@@ -77,11 +75,11 @@ class ContinuousFilter:
 
 
 def set_publishers(pub):
-    pub.append(rospy.Publisher('/control/joint_20/command', Float64, queue_size=10))
-    pub.append(rospy.Publisher('/control/joint_19/command', Float64, queue_size=10))
-    pub.append(rospy.Publisher('/control/joint_18/command', Float64, queue_size=10))
-    pub.append(rospy.Publisher('/control/joint_17/command', Float64, queue_size=10))
-    pub.append(rospy.Publisher('/control/joint_21/command', Float64, queue_size=10))
+    pub.append(rospy.Publisher('/ar601/RShoulder2Roll_position_controller/command', Float64, queue_size=10))
+    pub.append(rospy.Publisher('/ar601/RShoulder1Pitch_position_controller/command', Float64, queue_size=10))
+    pub.append(rospy.Publisher('/ar601/RShoulder3Pitch_position_controller/command', Float64, queue_size=10))
+    pub.append(rospy.Publisher('/ar601/RElbowYaw_position_controller/command', Float64, queue_size=10))
+    # pub.append(rospy.Publisher('/control/joint_21/command', Float64, queue_size=10))
 
 def set_interval(func, sec):
     def func_wrapper():
@@ -91,12 +89,6 @@ def set_interval(func, sec):
     t.start()
     return t
 
-'''
-This is a simple Websocket Echo server that uses the Tornado websocket handler.
-Please run `pip install tornado` with python of version 2.7.9 or greater to install tornado.
-This program will echo back the reverse of whatever it recieves.
-Messages are output to the terminal for debuggin purposes. 
-''' 
 
 
 pub_left = []
@@ -130,7 +122,10 @@ def compute_period(timestamps):
 
 def move():
 	global tick
-	q = angles_interp["left"][0](tick)
+	for i in range(3):
+		q = angles_interp["right"][0](tick)
+		pub_right[i].publish(q *180 / math.pi)
+
 	tick += 0.005
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	sock.sendto(str.encode(str(q)), ('',9090))
@@ -148,6 +143,8 @@ def consumer():
 
 		for key in angles.keys():
 			for i, item in enumerate(angles[key]):
+				# if key == "right":
+				# 	pub_right[i].publish(item.filtered[-1] *180 / math.pi)
 				N = len(item.filtered)
 				if(N<2):
 					break
@@ -187,7 +184,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 		left = angles_left
 		right = angles_right
 
-		# print(len(angles["left"][0].filtered))
+		print(len(angles["left"][0].filtered))
 		for i,item in enumerate(right):
 			angles["right"][i].push(right[i])
 			angles["left"][i].push(left[i])
@@ -209,7 +206,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 			plt.plot(range(len(item.data)), item.data)
 
 
-		plt.show()
+		# plt.show()
 		print('connection closed')
  
 	def check_origin(self, origin):
@@ -221,8 +218,9 @@ application = tornado.web.Application([
  
  
 if __name__ == "__main__":
+	rospy.init_node('kinect', anonymous=True)
+	set_publishers(pub_right)
 	"""
-    	rospy.init_node('kinect', anonymous=True)
     	pub_left.append(rospy.Publisher('/control/joint_36/command', Float64, queue_size=10))
     	pub_left.append(rospy.Publisher('/control/joint_35/command', Float64, queue_size=10))
     	pub_left.append(rospy.Publisher('/control/joint_34/command', Float64, queue_size=10))
@@ -237,5 +235,5 @@ if __name__ == "__main__":
 	http_server.listen(8888)
 	myIP = socket.gethostbyname(socket.gethostname())
 	print ('*** Websocket Server Started at {}***'.format(myIP))
-	_thread.start_new_thread( consumer, ( ) )
+	thread.start_new_thread( consumer, ( ) )
 	tornado.ioloop.IOLoop.instance().start()
