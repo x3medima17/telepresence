@@ -34,7 +34,7 @@ def inverse_kinematics(points, arm):
 	l2 = LA.norm(a2)
 
 	if arm == "left":
-		q1 = np.arctan2(x1,z1) + np.pi
+		q1 = np.arctan2(-x1,-z1) #+ np.pi
 		q2 = -np.arccos(y1/l1)
 		q4 = -angle(a1,a2)
 		a = np.cos(q2) * np.cos(q4)

@@ -79,7 +79,6 @@ function do_stuff(){
 	b.position.set(tmp.x, tmp.y, tmp.z)
 	var v1 = vec_from_mesh(a)
 	var v2 = vec_from_mesh(b)
-	console.log(get_angles(v1,v2))
 }
 function load() {
 	$.get("log.txt", function(data){
@@ -184,14 +183,12 @@ function work_frame(sample) {
 	var clone = $.extend(true,{}, window.data[window.i]);
 	points_left = [sample["left"]["shoulder"], sample["left"]["elbow"], sample["left"]["wrist"]]
 	angles_left = inverse_kinematics(points_left, "left")
-	console.log(points_left, angles_left)
 	
 	clone["left"] = forward_kinematics(angles_left, 0.24838567642065876, 0.2527196375596623, "left")
 	
 	points_right = [sample["right"]["shoulder"], sample["right"]["elbow"], sample["right"]["wrist"]]
 	angles_right = inverse_kinematics(points_right, "right")
-	console.log(points_right, angles_right)
-
+	
 	clone["right"] = forward_kinematics(angles_right, 0.24838567642065876, 0.2527196375596623, "right")
 	
 	clone["right"] = translate_arm(clone["right"], [SH_WIDTH, 0, 0])
@@ -199,15 +196,15 @@ function work_frame(sample) {
 
 	redraw(clone, FAKE["JOINTS"], FAKE["BONES"],  [50,60,0])
 	//Send angles
-	client_ws.send(JSON.stringify([angles_left, angles_right]))
+	console.log(angles_left, angles_right)
+	// client_ws.send(JSON.stringify([angles_left, angles_right]))
 }
 function simulate(){
 	$.get("log.txt", function(data){
 		var data = JSON.parse(data)
 		window.data = data
 		var n = data.length
-		window.i = 0
-		console.log(data[0])
+		window.i = 40
 		curr = Translation.slice()
 		curr[1] += 20
 		interval = setInterval(function(){
@@ -324,11 +321,17 @@ client_ws.onopen = function(){
 	
 }
 
+client_ws.onmessage = function(e) {
+	console.log(e)
+	var data = JSON.parse(e.data)
+	work_frame(data)
+		
+}
 // var ws = new WebSocket ("ws://188.166.48.28:9090/ws")
 
 ws.onopen = function(){
 	console.log("Done")
-	ws.send("heeeeeyyyyyyyyyyyy")
+	// ws.send("heeeeeyyyyyyyyyyyy")
 }
 
 ws.onmessage = function(e)

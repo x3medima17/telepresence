@@ -75,9 +75,9 @@ class ContinuousFilter:
 
 
 def set_publishers(pub):
-    pub.append(rospy.Publisher('/ar601/RShoulder2Roll_position_controller/command', Float64, queue_size=10))
     pub.append(rospy.Publisher('/ar601/RShoulder1Pitch_position_controller/command', Float64, queue_size=10))
     pub.append(rospy.Publisher('/ar601/RShoulder3Pitch_position_controller/command', Float64, queue_size=10))
+    pub.append(rospy.Publisher('/ar601/RArmPitch_position_controller/command', Float64, queue_size=10))
     pub.append(rospy.Publisher('/ar601/RElbowYaw_position_controller/command', Float64, queue_size=10))
     # pub.append(rospy.Publisher('/control/joint_21/command', Float64, queue_size=10))
 
@@ -112,7 +112,8 @@ clients = []
 timestamps = []
 
 c_active = True
-T = 0
+T = 1
+Interpolated = [[],[],[],[]]
 
 def compute_period(timestamps):
 	deltas = []
@@ -120,15 +121,30 @@ def compute_period(timestamps):
 		deltas.append(timestamps[i+1] - timestamps[i])
 	return np.mean(deltas)
 
-def move():
+def publisher():
+	T = 0.005
 	global tick
-	for i in range(3):
-		q = angles_interp["right"][0](tick)
-		pub_right[i].publish(q *180 / math.pi)
+	while c_active:
+		l = [0]*4
+		r = [0]*4
+		for i in range(4):
+			q = angles_interp["right"][i](tick)
+			pub_right[i].publish(q)
+			r[i] = float(q)
+			Interpolated[i].append(float(q))
 
-	tick += 0.005
-	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	sock.sendto(str.encode(str(q)), ('',9090))
+			q = angles_interp["left"][i](tick)
+			pub_left[i].publish(q)
+			l[i] = float(q)
+			# print()
+		print(l)
+		print(r)
+		print()
+		tick += 0.4
+		time.sleep(T)
+
+		# sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		# sock.sendto(str.encode(str(q)), ('',9090))
 
 
 def consumer():
@@ -148,14 +164,17 @@ def consumer():
 				N = len(item.filtered)
 				if(N<2):
 					break
-				angles_interp[key][i] = interp1d(range(N), item.filtered)
+
+				filtered = item.filtered
+
+				angles_interp[key][i] = interp1d(range(len(filtered)), filtered)
 
 		T = compute_period(timestamps)
 
-		if p == 1:
-			set_interval(move,0.0047)
+		# if p == 1:
+		# 	thread.start_new_thread( publisher, ( ) )
 
-		T = compute_period(timestamps)
+		# T = compute_period(timestamps)
 		# print(T, 1/T)
 		# print(p)
 	print("done")
@@ -168,6 +187,9 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 		clients.append(self)
       
 	def on_message(self, message):
+		for client in clients:
+			client.write_message(message)
+
 		global timestamps
 		timestamps.append(time.time())
 		self.k += 1
@@ -183,14 +205,19 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
 		left = angles_left
 		right = angles_right
-
-		print(len(angles["left"][0].filtered))
+		# print(left)
+		# print(right)
+		# sys.exit()
+		# print(len(angles["left"][0].filtered))
+		# print(right[0])
 		for i,item in enumerate(right):
 			angles["right"][i].push(right[i])
 			angles["left"][i].push(left[i])
 
 			if len(angles["right"][i].filtered) > 0:
-                #item.publish(angles[i].filtered[-1] *180 / math.pi)
+				pub_right[i].publish(angles["right"][i].filtered[-1])
+				pub_left[i].publish(angles["left"][i].filtered[-1])
+
 				# print("{} ".format(angles["right"][i].filtered[-1] *180 / math.pi))
 				pass
                
@@ -205,8 +232,12 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 		for item in angles["right"]:
 			plt.plot(range(len(item.data)), item.data)
 
+		plt.figure()
+		for item in Interpolated:
+			plt.plot(range(len(item)), item)
 
-		# plt.show()
+
+		plt.show()
 		print('connection closed')
  
 	def check_origin(self, origin):
@@ -219,18 +250,18 @@ application = tornado.web.Application([
  
 if __name__ == "__main__":
 	rospy.init_node('kinect', anonymous=True)
-	set_publishers(pub_right)
-	"""
-    	pub_left.append(rospy.Publisher('/control/joint_36/command', Float64, queue_size=10))
-    	pub_left.append(rospy.Publisher('/control/joint_35/command', Float64, queue_size=10))
-    	pub_left.append(rospy.Publisher('/control/joint_34/command', Float64, queue_size=10))
-    	pub_left.append(rospy.Publisher('/control/joint_33/command', Float64, queue_size=10))
+	# set_publishers(pub_right)
 
-    	pub_right.append(rospy.Publisher('/control/joint_20/command', Float64, queue_size=10))
-    	pub_right.append(rospy.Publisher('/control/joint_19/command', Float64, queue_size=10))
-    	pub_right.append(rospy.Publisher('/control/joint_18/command', Float64, queue_size=10))
-    	pub_right.append(rospy.Publisher('/control/joint_17/command', Float64, queue_size=10))
-    	"""
+	pub_right.append(rospy.Publisher('/ar601/RShoulder1Pitch_position_controller/command', Float64, queue_size=10))
+	pub_right.append(rospy.Publisher('/ar601/RShoulder2Roll_position_controller/command', Float64, queue_size=10))
+	pub_right.append(rospy.Publisher('/ar601/RShoulder3Pitch_position_controller/command', Float64, queue_size=10))
+	pub_right.append(rospy.Publisher('/ar601/RElbowYaw_position_controller/command', Float64, queue_size=10))
+
+	pub_left.append(rospy.Publisher('/ar601/LShoulder1Pitch_position_controller/command', Float64, queue_size=10))
+	pub_left.append(rospy.Publisher('/ar601/LShoulder2Roll_position_controller/command', Float64, queue_size=10))
+	pub_left.append(rospy.Publisher('/ar601/LShoulder3Pitch_position_controller/command', Float64, queue_size=10))
+	pub_left.append(rospy.Publisher('/ar601/LElbowYaw_position_controller/command', Float64, queue_size=10))
+
 	http_server = tornado.httpserver.HTTPServer(application)
 	http_server.listen(8888)
 	myIP = socket.gethostbyname(socket.gethostname())

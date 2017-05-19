@@ -1,0 +1,17 @@
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\bin\AnyCPU\Debug\BodyBasics-WPF.exe.config
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\bin\AnyCPU\Debug\BodyBasics-WPF.exe
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\bin\AnyCPU\Debug\BodyBasics-WPF.pdb
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\bin\AnyCPU\Debug\Microsoft.Kinect.dll
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\bin\AnyCPU\Debug\Microsoft.Kinect.xml
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\BodyBasics-WPF.csprojResolveAssemblyReference.cache
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\MainWindow.baml
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\MainWindow.g.cs
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\App.g.cs
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\BodyBasics-WPF_MarkupCompile.cache
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\BodyBasics-WPF.g.resources
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\Microsoft.Samples.Kinect.BodyBasics.Properties.Resources.resources
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\BodyBasics-WPF.csproj.GenerateResource.Cache
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\BodyBasics-WPF.exe
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\obj\Debug\BodyBasics-WPF.pdb
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\bin\AnyCPU\Debug\websocket-sharp.dll
+C:\Users\User\Documents\skeletonv2\BodyBasics-WPF\bin\AnyCPU\Debug\websocket-sharp.xml
